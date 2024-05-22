@@ -4,6 +4,11 @@ from db import create_connection, create_tables, get_users, get_tasks, add_task,
 import pandas as pd
 from datetime import datetime
 
+def get_user_xp(conn):
+    c = conn.cursor()
+    c.execute("SELECT name, total_xp FROM Users ORDER BY total_xp DESC")
+    data = c.fetchall()
+    return pd.DataFrame(data, columns=['Name', 'Total XP'])
 
 def get_user_activities(conn, user_id, date):
     c = conn.cursor()
@@ -60,8 +65,20 @@ def main():
                 st.subheader(f"{total_xp} XP")
 
             daily_activities = get_user_activities(conn, selected_user_id, str(current_date))
-            st.header("Recent Tasks")
-            st.table(daily_activities)
+            st.header("Today's Tasks")
+            st.dataframe(daily_activities)
+       
+        st.header("All Tasks")
+        all_tasks_query = "SELECT date, task_name, time_spent, xp_earned FROM ActivityLog JOIN Tasks ON ActivityLog.task_id = Tasks.task_id WHERE user_id = ? ORDER BY date DESC"
+        c = conn.cursor()
+        c.execute(all_tasks_query, (selected_user_id,))
+        all_tasks = c.fetchall()
+        all_tasks_df = pd.DataFrame(all_tasks, columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
+        st.dataframe(all_tasks_df)
+
+        st.title("XP Chart for All Kids")
+        user_xp_data = get_user_xp(conn)  # Assuming you have many users
+        st.bar_chart(user_xp_data.set_index('Name'))
 
         # Task Management
         with st.sidebar:
