@@ -38,10 +38,8 @@ def admin_page():
         with col1:
             with st.form("Add Child"):
                 child_name = st.text_input("Child's Name")
-                current_level = st.number_input("Current Level", min_value=0, value=0)
-                total_xp = st.number_input("Total XP", min_value=0, value=0)
                 if st.form_submit_button("Add Child"):
-                    add_user(conn, child_name, current_level, total_xp)
+                    add_user(conn, child_name)
                     st.success("Child added successfully!")
 
         with col2:
@@ -56,7 +54,7 @@ def admin_page():
     with st.expander("View All Data"):
         
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             st.subheader("All Users and XP Data")
@@ -78,14 +76,15 @@ def admin_page():
             else:
                 st.write("No tasks data available.")
 
-        st.subheader("All Rewards")
-        levels = get_levels(conn)
-        if levels:
-            levels_df = pd.DataFrame(levels, columns=["Level", "XP Required", "Cumulative XP", "Reward"])
-            levels_df.set_index("Level", inplace=True)
-            st.dataframe(levels_df)
-        else:
-            st.write("No level data available.")
+        with col3:
+            st.subheader("All Rewards")
+            levels = get_levels(conn)
+            if levels:
+                levels_df = pd.DataFrame(levels, columns=["Level", "XP Required", "Cumulative XP", "Reward"])
+                levels_df.set_index("Level", inplace=True)
+                st.dataframe(levels_df)
+            else:
+                st.write("No level data available.")
 
 if __name__ == "__main__":
     admin_page()

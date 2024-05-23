@@ -126,7 +126,7 @@ def delete_task(conn, task_id):
 
 def add_user(conn, name):
     c = conn.cursor()
-    c.execute("INSERT INTO Users (name, current_level, total_xp) VALUES (?, 1, 0)", (name,))
+    c.execute("INSERT INTO Users (name, current_level, total_xp) VALUES (?, 0, 0)", (name,))
     conn.commit()
 
 def update_user(conn, user_id, name):
