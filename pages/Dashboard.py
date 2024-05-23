@@ -1,7 +1,6 @@
 import streamlit as st
-from chores import get_user_xp
-from db import create_connection, get_users
 import pandas as pd
+from db import create_connection, get_users, get_user_xp
 
 # Connect to the SQLite database
 database = "chores.db"

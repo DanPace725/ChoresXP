@@ -1,29 +1,11 @@
 import streamlit as st
 import sqlite3
-from db import create_connection, create_tables, get_users, get_tasks, add_task, update_task, delete_task, log_activity, get_user_activities
+from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities, get_user_xp
 import pandas as pd
 from datetime import datetime
 # Set page config with a more descriptive name
 st.set_page_config(page_title="Home", page_icon="🏠", layout="wide")
 
-def get_user_xp(conn):
-    c = conn.cursor()
-    c.execute("SELECT name, total_xp FROM Users ORDER BY total_xp DESC")
-    data = c.fetchall()
-    return pd.DataFrame(data, columns=['Name', 'Total XP'])
-
-def get_user_activities(conn, user_id, date):
-    c = conn.cursor()
-    query = """
-    SELECT a.date, t.task_name, a.time_spent, a.xp_earned
-    FROM ActivityLog a
-    JOIN Tasks t ON a.task_id = t.task_id
-    WHERE a.user_id = ? AND a.date = ?
-    """
-    c.execute(query, (user_id, date))
-    activities = c.fetchall()
-    df = pd.DataFrame(activities, columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
-    return df
 
 
 def main():

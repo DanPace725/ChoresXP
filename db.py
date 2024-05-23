@@ -1,4 +1,5 @@
 import sqlite3
+import pandas as pd
 
 def create_connection(db_file):
     conn = None
@@ -106,11 +107,7 @@ def get_tasks(conn):
     tasks = c.fetchall()
     return tasks
 
-def get_user_activities(conn, user_id):
-    c = conn.cursor()
-    c.execute("SELECT a.date, t.task_name, a.time_spent, a.xp_earned FROM ActivityLog a JOIN Tasks t ON a.task_id = t.task_id WHERE a.user_id = ?", (user_id,))
-    activities = c.fetchall()
-    return activities
+
 
 def add_task(conn, task_name, base_xp, time_multiplier):
     c = conn.cursor()
@@ -151,5 +148,21 @@ def update_reward(conn, level, reward):
     c = conn.cursor()
     c.execute("UPDATE Levels SET Reward = ? WHERE Level = ?", (reward, level))
     conn.commit()
+def get_user_xp(conn):
+    c = conn.cursor()
+    c.execute("SELECT name, total_xp FROM Users ORDER BY total_xp DESC")
+    data = c.fetchall()
+    return pd.DataFrame(data, columns=['Name', 'Total XP'])
 
-
+def get_user_activities(conn, user_id, date):
+    c = conn.cursor()
+    query = """
+    SELECT a.date, t.task_name, a.time_spent, a.xp_earned
+    FROM ActivityLog a
+    JOIN Tasks t ON a.task_id = t.task_id
+    WHERE a.user_id = ? AND a.date = ?
+    """
+    c.execute(query, (user_id, date))
+    activities = c.fetchall()
+    df = pd.DataFrame(activities, columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
+    return df
