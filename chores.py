@@ -3,6 +3,8 @@ import sqlite3
 from db import create_connection, create_tables, get_users, get_tasks, add_task, update_task, delete_task, log_activity, get_user_activities
 import pandas as pd
 from datetime import datetime
+# Set page config with a more descriptive name
+st.set_page_config(page_title="Home", page_icon="🏠", layout="wide")
 
 def get_user_xp(conn):
     c = conn.cursor()
@@ -76,9 +78,7 @@ def main():
         all_tasks_df = pd.DataFrame(all_tasks, columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
         st.dataframe(all_tasks_df)
 
-        st.title("XP Chart for All Kids")
-        user_xp_data = get_user_xp(conn)  # Assuming you have many users
-        st.bar_chart(user_xp_data.set_index('Name'))
+        
 
         # Task Management
         with st.sidebar:
@@ -93,15 +93,7 @@ def main():
                 st.success("Task logged successfully!")
                 st.experimental_rerun()
                 
-
-            # Admin Tools
-            with st.expander("Admin Tools"):
-                new_task_name = st.text_input("New Task Name")
-                new_task_xp = st.number_input("Base XP", min_value=0)
-                new_task_multiplier = st.number_input("Time Multiplier", min_value=0.0, step=0.1)
-                if st.button('Add New Task'):
-                    add_task(conn, new_task_name, new_task_xp, new_task_multiplier)
-                    st.success("New task added!")
+            
     else:
         st.error("Please select a user.")
 

@@ -37,11 +37,20 @@ def create_tables(conn):
         FOREIGN KEY (task_id) REFERENCES Tasks(task_id)
     );
     """
+    create_levels_table_sql = """
+    CREATE TABLE IF NOT EXISTS Levels (
+        Level INTEGER PRIMARY KEY,
+        XPRequired INTEGER,
+        CumulativeXP INTEGER,
+        Reward TEXT
+    );
+    """
     try:
         c = conn.cursor()
         c.execute(create_users_table_sql)
         c.execute(create_tasks_table_sql)
         c.execute(create_activity_log_table_sql)
+        c.execute(create_levels_table_sql)
     except sqlite3.Error as e:
         print(f"Error creating table: {e}")
 
@@ -127,4 +136,20 @@ def update_user(conn, user_id, name):
     c = conn.cursor()
     c.execute("UPDATE Users SET name = ? WHERE user_id = ?", (name, user_id))
     conn.commit()
+
+def delete_user(conn, user_id):
+    c = conn.cursor()
+    c.execute("DELETE FROM Users WHERE user_id = ?", (user_id,))
+    conn.commit()
+
+def get_levels(conn):
+    c = conn.cursor()
+    c.execute("SELECT Level, XPRequired, CumulativeXP, Reward FROM Levels ORDER BY Level")
+    return c.fetchall()
+
+def update_reward(conn, level, reward):
+    c = conn.cursor()
+    c.execute("UPDATE Levels SET Reward = ? WHERE Level = ?", (reward, level))
+    conn.commit()
+
 
