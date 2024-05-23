@@ -1,8 +1,8 @@
 import streamlit as st
-import sqlite3
-from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities, get_user_xp
+from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities
 import pandas as pd
 from datetime import datetime
+
 # Set page config with a more descriptive name
 st.set_page_config(page_title="Home", page_icon="🏠", layout="wide")
 

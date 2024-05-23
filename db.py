@@ -14,7 +14,7 @@ def create_tables(conn):
     CREATE TABLE IF NOT EXISTS Users (
         user_id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
-        current_level INTEGER DEFAULT 1,
+        current_level INTEGER DEFAULT 0,
         total_xp INTEGER DEFAULT 0
     );
     """
