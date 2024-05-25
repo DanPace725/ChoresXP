@@ -1,5 +1,6 @@
 import sqlite3
 import pandas as pd
+import bcrypt
 
 def create_connection(db_file):
     conn = None
@@ -10,6 +11,14 @@ def create_connection(db_file):
     return conn
 
 def create_tables(conn):
+
+    create_admin_table_sql = """
+    CREATE TABLE IF NOT EXISTS admin (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL
+    );
+    """
     create_users_table_sql = """
     CREATE TABLE IF NOT EXISTS Users (
         user_id INTEGER PRIMARY KEY,
@@ -48,12 +57,37 @@ def create_tables(conn):
     """
     try:
         c = conn.cursor()
+
+        c.execute(create_admin_table_sql)
         c.execute(create_users_table_sql)
         c.execute(create_tasks_table_sql)
         c.execute(create_activity_log_table_sql)
         c.execute(create_levels_table_sql)
     except sqlite3.Error as e:
         print(f"Error creating table: {e}")
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+def check_password(hashed_password, user_password):
+    return bcrypt.checkpw(user_password.encode('utf-8'), hashed_password)
+
+def register_user(conn, username, password):
+    try:
+        c = conn.cursor()
+        c.execute("INSERT INTO admin (username, password_hash) VALUES (?, ?)", (username, hash_password(password)))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+def login_user(conn, username, password):
+    c = conn.cursor()
+    c.execute("SELECT password_hash FROM admin WHERE username = ?", (username,))
+    user = c.fetchone()
+    if user and check_password(user[0], password):
+        return True
+    return False
 
 def calculate_xp(base_xp, time_spent, multiplier):
     return base_xp + (time_spent * multiplier)

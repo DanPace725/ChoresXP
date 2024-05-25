@@ -4,7 +4,7 @@ from db import create_connection, get_users, get_user_xp
 import plotly.graph_objs as go
 
 
-st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
+
 
 
 
@@ -123,7 +123,7 @@ def dashboard_page():
             st.plotly_chart(fig, use_container_width=True)
         col_index = (col_index + 1) % len(cols)  # Move to the next column
 
-if __name__ == "__main__":
+if st.session_state['logged_in']:
     dashboard_page()
 
 

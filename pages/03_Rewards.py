@@ -23,5 +23,5 @@ def manage_rewards_page():
     else:
         st.write("No level data available.")
 
-if __name__ == "__main__":
+if st.session_state['logged_in']:
     manage_rewards_page()
