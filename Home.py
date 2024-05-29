@@ -1,5 +1,5 @@
 import streamlit as st
-from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities,login_user, register_user
+from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities,login_admin, register_admin
 import pandas as pd
 from datetime import datetime
 import bcrypt
@@ -47,7 +47,7 @@ def main():
                     password = st.text_input("Password", type="password")
                     submitted = st.form_submit_button("Login")
                     if submitted:
-                        if login_user(conn, username, password):
+                        if login_admin(conn, username, password):
                             st.session_state['logged_in'] = True
                             st.session_state['username'] = username
                             st.experimental_rerun()
@@ -67,7 +67,7 @@ def main():
                         if new_password != confirm_password:
                             st.error("Passwords do not match!")
                         else:
-                            if register_user(conn, new_username, new_password):
+                            if register_admin(conn, new_username, new_password):
                                 st.success("User registered successfully!")
                                 st.session_state['mode'] = 'login'
                                 st.experimental_rerun()
