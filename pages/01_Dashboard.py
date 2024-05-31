@@ -4,10 +4,6 @@ from db import create_connection, get_users
 import plotly.graph_objects as go
 
 
-
-
-
-
 # Connect to the SQLite database
 database = "chores.db"
 conn = create_connection(database)
