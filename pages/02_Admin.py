@@ -1,8 +1,42 @@
 import streamlit as st
-from db import create_connection, add_task, delete_task, add_user, delete_user, update_user, get_users, get_tasks, get_levels
+from db import create_connection, add_task, delete_task, add_user, delete_user, update_user, get_users, get_tasks, get_levels, add_level, update_level_details
 import pandas as pd
 
 st.set_page_config(page_title="Admin", page_icon="🔑", layout="wide")
+
+def manage_levels(conn, admin_id):
+    with st.expander("Manage Levels"):
+        col1, col2 = st.columns(2)
+
+        # Adding new level
+        with col1:
+            with st.form("Add Level"):
+                level = st.number_input("Level Number", min_value=1, step=1)
+                xp_required = st.number_input("XP Required", min_value=0, step=10)
+                cumulative_xp = st.number_input("Cumulative XP", min_value=0, step=10)
+                reward = st.text_input("Reward")
+                if st.form_submit_button("Add Level"):
+                    add_level(conn, admin_id, level, xp_required, cumulative_xp, reward)
+                    st.success("Level added successfully!")
+
+        # Updating existing level
+        with col2:
+            levels = get_levels(conn, admin_id)
+            level_options = {level[0]: f"Level {level[0]}" for level in levels}
+            selected_level = st.selectbox("Select Level to Edit", options=list(level_options.keys()), format_func=lambda x: level_options[x])
+            level_details = next((lvl for lvl in levels if lvl[0] == selected_level), None)
+            
+            if level_details:
+                xp_required_value = int(level_details[1]) if level_details[1] is not None else 0
+                cumulative_xp_value = int(level_details[2]) if level_details[2] is not None else 0
+                xp_required = st.number_input("Edit XP Required", min_value=0, step=10, value=xp_required_value)
+                cumulative_xp = st.number_input("Edit Cumulative XP", min_value=0, step=10, value=cumulative_xp_value)
+                reward = st.text_input("Edit Reward", value=level_details[3])
+                
+                if st.button(f"Update Level {selected_level}"):
+                    update_level_details(conn, admin_id, selected_level, xp_required, cumulative_xp, reward)
+                    st.success(f"Level {selected_level} updated successfully!")
+                    st.experimental_rerun()  # Optionally, rerun to update the level list immediately.
     
 def admin_page():
     st.title("Admin Tools")
@@ -48,9 +82,9 @@ def admin_page():
             if st.button("Remove Child"):
                 delete_user(conn, child_to_remove[0])  # Pass the user_id of the selected child
                 st.success(f"Child '{child_to_remove[1]}' removed successfully!")
-                st.rerun()  # Optionally, rerun to update the child list immediately
+                st.experimental_rerun()  # Optionally, rerun to update the child list immediately
                 
-
+    manage_levels(conn, st.session_state['admin_id'])
     with st.expander("View All Data"):
         
 

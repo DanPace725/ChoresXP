@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from db import create_connection, get_users
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 
 
 

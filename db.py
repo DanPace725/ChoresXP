@@ -1,6 +1,19 @@
 import sqlite3
 import pandas as pd
 import bcrypt
+DEFAULT_LEVELS = [
+    (1, 100, 100, "Reward: Gift card $5"),
+    (2, 200, 300, "Reward: Extra 30 minutes screen time"),
+    (3, 300, 600, "Reward: Choice of dinner for one night"),
+    (4, 400, 1000, "Reward: Movie night choice"),
+    (5, 500, 1500, "Reward: New book or toy"),
+    (6, 600, 2100, "Reward: Trip to the local park"),
+    (7, 700, 2800, "Reward: $10 cash bonus"),
+    (8, 800, 3600, "Reward: Day out at the zoo"),
+    (9, 900, 4500, "Reward: Video game"),
+    (10, 1000, 5500, "Reward: Weekend family trip")
+]
+
 
 # Utility Functions
 def create_connection(db_file):
@@ -68,6 +81,8 @@ def register_admin(conn, username, password):
     try:
         with conn:
             conn.execute("INSERT INTO admin (username, password_hash) VALUES (?, ?)", (username, hash_password(password)))
+            admin_id = conn.lastrowid  # Retrieve the ID of the newly created admin
+            initialize_default_levels(conn, admin_id)  # Initialize default levels for the new admin
         return True
     except sqlite3.IntegrityError:
         return False
@@ -138,6 +153,14 @@ def get_user_activities(conn, admin_id, user_id, date):
     df.index += 1
     return df
 # Level Management Functions
+def initialize_default_levels(conn, admin_id):
+    with conn:
+        for level, xp_required, cumulative_xp, reward in DEFAULT_LEVELS:
+            conn.execute("""
+                INSERT INTO Levels (Level, admin_id, XPRequired, CumulativeXP, Reward)
+                VALUES (?, ?, ?, ?, ?)""",
+                (level, admin_id, xp_required, cumulative_xp, reward))
+
 def update_level(conn, user_id):
     c = conn.cursor()
     c.execute("SELECT total_xp FROM Users WHERE user_id = ?", (user_id,))
@@ -146,6 +169,16 @@ def update_level(conn, user_id):
     new_level = len([x for x in levels if x <= total_xp])
     with conn:
         conn.execute("UPDATE Users SET current_level = ? WHERE user_id = ?", (new_level, user_id))
+
+def add_level(conn, admin_id, level, xp_required, cumulative_xp, reward):
+    with conn:
+        conn.execute("INSERT INTO Levels (Level, admin_id, XPRequired, CumulativeXP, Reward) VALUES (?, ?, ?, ?, ?)",
+                     (level, admin_id, xp_required, cumulative_xp, reward))
+
+def update_level_details(conn, admin_id, level, xp_required, cumulative_xp, reward):
+    with conn:
+        conn.execute("UPDATE Levels SET XPRequired = ?, CumulativeXP = ?, Reward = ? WHERE Level = ? AND admin_id = ?",
+                     (xp_required, cumulative_xp, reward, level, admin_id))
 
 def get_levels(conn, admin_id):
     c = conn.cursor()
