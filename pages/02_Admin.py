@@ -20,12 +20,12 @@ def admin_page():
                 new_task_xp = st.number_input("Base XP", min_value=0)
                 new_task_multiplier = st.number_input("Time Multiplier", min_value=0.0, step=0.1)
                 if st.form_submit_button('Add New Task'):
-                    add_task(conn, new_task_name, new_task_xp, new_task_multiplier)
+                    add_task(conn, st.session_state['admin_id'], new_task_name, new_task_xp, new_task_multiplier)
                     st.success("New task added!")
 
         with col2:
             with st.form("Remove Tasks"):
-                tasks = get_tasks(conn)
+                tasks = get_tasks(conn, st.session_state['admin_id'])
                 task_to_remove = st.selectbox("Select a task to remove", tasks, format_func=lambda x: x[1], key="remove_task")
                 if st.form_submit_button("Remove Task"):
                     delete_task(conn, task_to_remove[0])  # Pass the task_id of the selected task
@@ -39,11 +39,11 @@ def admin_page():
             with st.form("Add Child"):
                 child_name = st.text_input("Child's Name")
                 if st.form_submit_button("Add Child"):
-                    add_user(conn, child_name)
+                    add_user(conn, st.session_state['admin_id'], child_name)
                     st.success("Child added successfully!")
 
         with col2:
-            children = get_users(conn)
+            children = get_users(conn, st.session_state['admin_id'])
             child_to_remove = st.selectbox("Select a child to remove", children, format_func=lambda x: x[1], key="remove_child")
             if st.button("Remove Child"):
                 delete_user(conn, child_to_remove[0])  # Pass the user_id of the selected child
@@ -58,7 +58,7 @@ def admin_page():
 
         with col1:
             st.subheader("All Users and XP Data")
-            users = get_users(conn)
+            users = get_users(conn, st.session_state['admin_id'])
             if users:
                 users_df = pd.DataFrame(users, columns=["User ID", "Name", "Current Level", "Total XP"])
                 users_df.set_index("User ID", inplace=True)
@@ -68,7 +68,7 @@ def admin_page():
 
         with col2:
             st.subheader("All Tasks")
-            tasks = get_tasks(conn)
+            tasks = get_tasks(conn, st.session_state['admin_id'])
             if tasks:
                 tasks_df = pd.DataFrame(tasks, columns=["Task ID", "Task Name", "Base XP", "Time Multiplier"])
                 tasks_df.set_index("Task ID", inplace=True)
@@ -78,7 +78,7 @@ def admin_page():
 
         with col3:
             st.subheader("All Rewards")
-            levels = get_levels(conn)
+            levels = get_levels(conn, st.session_state['admin_id'])
             if levels:
                 levels_df = pd.DataFrame(levels, columns=["Level", "XP Required", "Cumulative XP", "Reward"])
                 levels_df.set_index("Level", inplace=True)
@@ -86,5 +86,16 @@ def admin_page():
             else:
                 st.write("No level data available.")
 
-if st.session_state['logged_in']:
+    if st.button("Logout"):
+        for key in st.session_state.keys():
+            del st.session_state[key]
+        st.success("You have been logged out.")
+        st.experimental_set_query_params(page='home') 
+    # Redirect to home page or another p
+        st.experimental_rerun()
+
+
+if st.session_state.get('logged_in'):
     admin_page()
+else:
+    st.error("Login to access this page.")

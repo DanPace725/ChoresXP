@@ -1,8 +1,5 @@
 import streamlit as st
 from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities,login_admin, register_admin
-import pandas as pd
-from datetime import datetime
-import bcrypt
 from tracker import show_tracker
 
 
@@ -31,7 +28,7 @@ def main():
     print("Current mode:", st.session_state['mode'])  # Debug print
 
     if st.session_state['logged_in']:
-        show_tracker(conn, st.session_state['username'])
+        show_tracker(conn, st.session_state['admin_id'])
         
         
         
@@ -42,21 +39,23 @@ def main():
         with col2:
             st.title("Login")
             if st.session_state['mode'] == 'login':
-                with st.form("Login Form"):
+                 with st.form("Login Form"):
                     username = st.text_input("Username")
                     password = st.text_input("Password", type="password")
                     submitted = st.form_submit_button("Login")
                     if submitted:
-                        if login_admin(conn, username, password):
+                        admin_id, is_authenticated = login_admin(conn, username, password)  # Assuming login_admin now returns admin_id and authentication status
+                        if is_authenticated:
                             st.session_state['logged_in'] = True
                             st.session_state['username'] = username
-                            st.experimental_rerun()
+                            st.session_state['admin_id'] = admin_id  # Store admin ID in session state
+                            st.rerun()
                         else:
                             st.error("Incorrect username or password")
                     st.write("New user?")
                     if st.form_submit_button("Register here"):
                         st.session_state['mode'] = 'register'
-                        st.experimental_rerun()
+                        st.rerun()
             elif st.session_state['mode'] == 'register':
                 with st.form("Register Form"):
                     new_username = st.text_input("Choose Username")
@@ -70,7 +69,7 @@ def main():
                             if register_admin(conn, new_username, new_password):
                                 st.success("User registered successfully!")
                                 st.session_state['mode'] = 'login'
-                                st.experimental_rerun()
+                                st.rerun()
                             else:
                                 st.error("Registration failed. User might already exist.")
                 if st.button("Back to Login"):

@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from db import create_connection, get_users, get_user_xp
+from db import create_connection, get_users
 import plotly.graph_objs as go
 
 
@@ -105,13 +105,13 @@ def dashboard_page():
     conn = create_connection(database)
 
     # Fetch data
-    user_data = pd.DataFrame(get_users(conn), columns=["User ID", "Name", "Current Level", "Total XP"])
+    user_data = pd.DataFrame(get_users(conn, st.session_state['admin_id']), columns=["User ID", "Name", "Current Level", "Total XP"])
     
     # Display Metrics and Charts
     display_key_metrics(user_data)
     generate_user_detail_charts(user_data)
     st.subheader ("Progress to Next Level")
-    users = pd.DataFrame(get_users(conn), columns=["User ID", "Name", "Current Level", "Total XP"])
+    users = pd.DataFrame(get_users(conn, st.session_state['admin_id']), columns=["User ID", "Name", "Current Level", "Total XP"])
     next_level_xp = 100  # Assuming a flat rate for simplification; this could be dynamic.
 
     cols = st.columns(3)  # Adjust the number of columns based on layout preferences
@@ -123,8 +123,10 @@ def dashboard_page():
             st.plotly_chart(fig, use_container_width=True)
         col_index = (col_index + 1) % len(cols)  # Move to the next column
 
-if st.session_state['logged_in']:
+if st.session_state.get('logged_in'):
     dashboard_page()
+else:
+    st.error("Login to access this page.")
 
 
 

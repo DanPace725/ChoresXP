@@ -77,8 +77,9 @@ def login_admin(conn, username, password):
     c.execute("SELECT id, password_hash FROM admin WHERE username = ?", (username,))
     admin = c.fetchone()
     if admin and check_password(admin[1], password):
-        return admin[0]  # Return admin_id
-    return None
+        return admin[0], True  # Assuming admin_id is obtained during authentication
+    else:
+        return None, False
 
 # User Management Functions
 def add_user(conn, admin_id, name):
@@ -133,8 +134,9 @@ def get_user_activities(conn, admin_id, user_id, date):
     WHERE a.admin_id = ? AND a.user_id = ? AND a.date = ?
     """
     c.execute(query, (admin_id, user_id, date))
-    return pd.DataFrame(c.fetchall(), columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
-
+    df = pd.DataFrame(c.fetchall(), columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
+    df.index += 1
+    return df
 # Level Management Functions
 def update_level(conn, user_id):
     c = conn.cursor()

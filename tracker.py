@@ -1,62 +1,87 @@
 import streamlit as st
-from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities,login_user, register_user
+from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities, login_admin
 import pandas as pd
 from datetime import datetime
-def show_tracker(conn, username):
+
+
+def main():
+    # Set up the Streamlit page
+    st.set_page_config(page_title="Home", page_icon="🏠", layout="wide")
+    database = "chores.db"
+    conn = create_connection(database)
+    create_tables(conn)
+
+    # Handle login
+    if 'admin_id' not in st.session_state:
+        username = st.sidebar.text_input("Username")
+        password = st.sidebar.text_input("Password", type="password")
+        if st.sidebar.button("Login"):
+            admin_id = login_admin(conn, username, password)
+            if admin_id:
+                st.session_state['admin_id'] = admin_id
+            else:
+                st.sidebar.error("Invalid username or password")
+    
+    if 'admin_id' in st.session_state:
+        show_tracker(conn, st.session_state['admin_id'])
+
+def show_tracker(conn, admin_id):
     st.sidebar.title("Chore Tracker")
-
-    # User selection
-    user_list = get_users(conn)
-    user_names = {user[0]: user[1] for user in user_list}  # Dictionary of user_id to user name
-    selected_user_id = st.sidebar.selectbox(
-        'Select Child', 
-        options=list(user_names.keys()), 
-        format_func=lambda x: user_names[x],
-        key='selected_user_id'
-    )
-    current_date = datetime.now().date()  # Gets the current date
-
-    if selected_user_id is not None:
-        selected_user_details = next((user for user in user_list if user[0] == selected_user_id), None)
-        if selected_user_details:
-            user_name, current_level, total_xp = selected_user_details[1], selected_user_details[2], selected_user_details[3]
-
-            # Display selected user's progress
-            st.title(f"{user_name}'s Chore Progress")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.header("Current Level")
-                st.subheader(f"Level {current_level}")
-                st.progress(total_xp / 1000)  # Assuming max XP per level increment is 1000
-                st.caption(f"{total_xp} XP to Next Level")
-
-            with col2:
-                st.header("Total XP")
-                st.subheader(f"{total_xp} XP")
-
-            daily_activities = get_user_activities(conn, selected_user_id, str(current_date))
-            st.header("Today's Tasks")
-            st.dataframe(daily_activities)
-        
-        st.header("All Tasks")
-        all_tasks_query = "SELECT date, task_name, time_spent, xp_earned FROM ActivityLog JOIN Tasks ON ActivityLog.task_id = Tasks.task_id WHERE user_id = ? ORDER BY date DESC"
-        c = conn.cursor()
-        c.execute(all_tasks_query, (selected_user_id,))
-        all_tasks = c.fetchall()
-        all_tasks_df = pd.DataFrame(all_tasks, columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
-        st.dataframe(all_tasks_df)
-
-        # Task Management
+    
+    # Fetching user-specific data
+    user_list = get_users(conn, admin_id)
+    
+    
+    user_names = {user[0]: user[1] for user in user_list}
+    selected_user_id = st.sidebar.selectbox('Select Child', options=list(user_names.keys()), format_func=lambda x: user_names[x])
+    
+    current_date = datetime.now().date()
+    if selected_user_id:
+        display_user_progress(conn, selected_user_id, admin_id, current_date)
+        st.sidebar.title("Manage Activities")
         with st.sidebar:
-            st.header("Task Management")
-            task_list = get_tasks(conn)
-            task_id = st.selectbox('Select Task', task_list, format_func=lambda x: x[1])
-            date = st.date_input("Date")
-            time_spent = st.slider("Time Spent (minutes)", 0, 120, 30)
-            if st.button('Log Task'):
-                log_activity(conn, selected_user_id, task_id[0], str(date), time_spent)
-                st.session_state.user_activities = get_user_activities(conn, selected_user_id, str(current_date))
-                st.success("Task logged successfully!")
-                st.experimental_rerun()
+            manage_tasks(conn, selected_user_id, admin_id)
+        
     else:
         st.error("Please select a user.")
+
+def display_user_progress(conn, user_id, admin_id, current_date):
+    """Displays the progress of the selected user."""
+    user_details = get_users(conn, admin_id)
+    # Filter user_details to match the provided user_id
+    user_details = [user for user in user_details if user[0] == user_id]
+    if user_details:
+        user_name, current_level, total_xp = user_details[0][1], user_details[0][2], user_details[0][3]
+        st.title(f"{user_name}'s Chore Progress")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.header("Current Level")
+            st.subheader(f"Level {current_level}")
+            st.progress(total_xp / 1000)  # Example XP progression
+            st.caption(f"{total_xp} XP to Next Level")
+        with col2:
+            st.header("Total XP")
+            st.subheader(f"{total_xp} XP")
+        
+        # Fetch and display today's tasks for the user
+        today_tasks = get_user_activities(conn, admin_id, user_id, str(current_date))
+        if not today_tasks.empty:
+            st.header("Today's Tasks")
+            st.dataframe(today_tasks)
+        else:
+            st.write("No tasks for today.")
+def manage_tasks(conn, user_id, admin_id):
+    """Manages tasks and activities for the selected user."""
+    task_list = get_tasks(conn, admin_id)
+    # Assuming get_tasks returns a list of tuples like [(task_id, task_name), ...]
+    task_options = {task[0]: task[1] for task in task_list}  # Create a dictionary to map task IDs to task names
+    task_id = st.sidebar.selectbox('Select Task', options=list(task_options.keys()), format_func=lambda x: task_options[x])
+    date = st.sidebar.date_input("Date")
+    time_spent = st.sidebar.slider("Time Spent (minutes)", 0, 120, 30)
+    if st.sidebar.button('Log Task'):
+        log_activity(conn, admin_id, user_id, task_id, str(date), time_spent)
+        st.success("Task logged successfully!")
+        st.rerun()
+
+if __name__ == "__main__":
+    main()
