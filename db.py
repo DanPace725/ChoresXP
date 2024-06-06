@@ -63,6 +63,7 @@ def create_tables(conn):
                 date TEXT NOT NULL,
                 time_spent INTEGER,
                 xp_earned INTEGER,
+                bonus_xp INTEGER DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES Users(user_id),
                 FOREIGN KEY (task_id) REFERENCES Tasks(task_id),
                 FOREIGN KEY (admin_id) REFERENCES admin(id)
@@ -139,12 +140,12 @@ def delete_task(conn, task_id):
         conn.execute("DELETE FROM Tasks WHERE task_id = ?", (task_id,))
 
 # Activity Log Functions
-def log_activity(conn, admin_id, user_id, task_id, date, time_spent):
+def log_activity(conn, admin_id, user_id, task_id, date, time_spent, bonus_xp=0):
     xp_earned = calculate_xp(conn, task_id, time_spent)
     with conn:
-        conn.execute("INSERT INTO ActivityLog (admin_id, user_id, task_id, date, time_spent, xp_earned) VALUES (?, ?, ?, ?, ?, ?)",
-                     (admin_id, user_id, task_id, date, time_spent, xp_earned))
-        update_total_xp(conn, user_id, xp_earned)  # Update the user's total XP along with logging the activity
+        conn.execute("INSERT INTO ActivityLog (admin_id, user_id, task_id, date, time_spent, xp_earned, bonus_xp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                     (admin_id, user_id, task_id, date, time_spent, xp_earned, bonus_xp))
+        update_total_xp(conn, user_id, xp_earned + bonus_xp)  # Update the user's total XP along with logging the activity
 
 def get_user_activities(conn, admin_id, user_id, date):
     c = conn.cursor()
@@ -155,6 +156,20 @@ def get_user_activities(conn, admin_id, user_id, date):
     WHERE a.admin_id = ? AND a.user_id = ? AND a.date = ?
     """
     c.execute(query, (admin_id, user_id, date))
+    df = pd.DataFrame(c.fetchall(), columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
+    df.index += 1
+    return df
+
+def get_all_user_activities(conn, admin_id, user_id):
+    c = conn.cursor()
+    query = """
+    SELECT a.date, t.task_name, a.time_spent, a.xp_earned
+    FROM ActivityLog a
+    JOIN Tasks t ON a.task_id = t.task_id
+    WHERE a.admin_id = ? AND a.user_id = ?
+    ORDER BY a.date DESC
+    """
+    c.execute(query, (admin_id, user_id))
     df = pd.DataFrame(c.fetchall(), columns=['Date', 'Task Name', 'Time Spent', 'XP Earned'])
     df.index += 1
     return df
@@ -171,7 +186,7 @@ def update_level(conn, user_id):
     c = conn.cursor()
     c.execute("SELECT total_xp FROM Users WHERE user_id = ?", (user_id,))
     total_xp = c.fetchone()[0]
-    levels = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500]  # Add more as needed
+    levels = [100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500]  # Add more as needed
     new_level = len([x for x in levels if x <= total_xp])
     with conn:
         conn.execute("UPDATE Users SET current_level = ? WHERE user_id = ?", (new_level, user_id))
