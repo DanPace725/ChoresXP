@@ -1,5 +1,5 @@
 import streamlit as st
-from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities, login_admin, get_levels
+from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities, login_admin, get_levels, get_all_user_activities
 import pandas as pd
 from datetime import datetime
 
@@ -49,40 +49,50 @@ def display_user_progress(conn, user_id, admin_id, current_date):
     user_details = get_users(conn, admin_id)
     user_details = [user for user in user_details if user[0] == user_id][0]
     user_name, current_level, total_xp = user_details[1], user_details[2], user_details[3]
-    print("User Details:", total_xp)
     
     levels = get_levels(conn, admin_id)
-    
-    next_level = next((level for level in levels if level[0] > current_level), None)
-    
-    # Ensure next_level_xp and next_level_xp_required are integers
-    next_level_xp = int(next_level[2]) if next_level else total_xp
-    next_level_xp_required = int(next_level[1]) if next_level else 0
-    print("Next Level XP:", next_level_xp) # Use current XP if already at highest level
+    current_level_info = next((level for level in levels if level[0] == current_level), None)
+    next_level_info = next((level for level in levels if level[0] == current_level + 1), None)
 
     st.title(f"{user_name}'s Chore Progress")
     col1, col2 = st.columns(2)
     with col1:
         st.header("Current Level")
         st.subheader(f"Level {current_level}")
-        if next_level and (next_level_xp - next_level_xp_required) > 0:
-            progress_percent = (total_xp - next_level_xp_required) / (next_level_xp - next_level_xp_required)
-            progress_percent = max(0, min(progress_percent, 1))  # Clamp the value between 0 and 1
+
+        if current_level_info:
+            xp_for_next_level = next_level_info[2]  # Cumulative XP required for next level
         else:
-            progress_percent = 1 
-        st.progress(progress_percent)
-        st.caption(f"{total_xp} / {next_level_xp} XP to Next Level")
+            xp_for_next_level = 100  # Use current level max if there's no next level
+
+        
+        # Calculate progress percentage based on total XP against the XP needed for next level
+        progress_percent = total_xp / xp_for_next_level if xp_for_next_level else 1
+        progress_percent = max(0, min(progress_percent, 1))  # Clamp the value between 0 and 1
+
+        #st.progress(progress_percent)
+        st.caption(f"{total_xp} / {xp_for_next_level} XP to Next Level")
+
     with col2:
         st.header("Total XP")
         st.subheader(f"{total_xp} XP")
-        
-    # Fetch and display today's tasks for the user
+
+
+    # Display today's tasks
     today_tasks = get_user_activities(conn, admin_id, user_id, str(current_date))
     if not today_tasks.empty:
         st.header("Today's Tasks")
         st.dataframe(today_tasks)
     else:
         st.write("No tasks for today.")
+
+    # Expander for all tasks
+    with st.expander("View All Tasks"):
+        all_tasks = get_all_user_activities(conn, admin_id, user_id)
+        if not all_tasks.empty:
+            st.dataframe(all_tasks)
+        else:
+            st.write("No tasks found.")
 def manage_tasks(conn, user_id, admin_id):
     """Manages tasks and activities for the selected user."""
     task_list = get_tasks(conn, admin_id)
@@ -91,6 +101,7 @@ def manage_tasks(conn, user_id, admin_id):
     task_id = st.sidebar.selectbox('Select Task', options=list(task_options.keys()), format_func=lambda x: task_options[x])
     date = st.sidebar.date_input("Date")
     time_spent = st.sidebar.number_input("Time Spent (minutes)", min_value=0, value=0)
+    bonus_xp = st.sidebar.number_input("Bonus XP", min_value=0, value=0)
     if st.sidebar.button('Log Task'):
         log_activity(conn, admin_id, user_id, task_id, str(date), time_spent)
         st.success("Task logged successfully!")
