@@ -49,7 +49,7 @@ def main():
                             st.session_state['logged_in'] = True
                             st.session_state['username'] = username
                             st.session_state['admin_id'] = admin_id  # Store admin ID in session state
-                            st.experimental_rerun() 
+                            st.rerun() 
                     
                         else:
                             st.error("Incorrect username or password")
