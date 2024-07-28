@@ -3,7 +3,7 @@ from db import create_connection, create_tables, login_admin, register_admin
 from tracker import show_tracker
 from streamlit_cookies_manager import EncryptedCookieManager
 
-st.set_page_config(page_title="Home", page_icon="🏠", layout="centered")   
+  
    # Initialize the cookie manager
 cookies = EncryptedCookieManager(prefix="myapp_", password="password")
 
@@ -50,7 +50,7 @@ def main():
                                st.session_state['logged_in'] = True
                                st.session_state['username'] = username
                                st.session_state['admin_id'] = admin_id
-                               cookies["auth_token"] = admin_id
+                               cookies["auth_token"] = str(admin_id)
                                st.rerun()
                            else:
                                st.error("Incorrect username or password")

@@ -2,6 +2,7 @@ import streamlit as st
 from db import create_connection, create_tables, get_users, get_tasks, log_activity, get_user_activities, login_admin, get_levels, get_all_user_activities
 import pandas as pd
 from datetime import datetime
+from streamlit_cookies_manager import EncryptedCookieManager
 
 
 def main():
@@ -10,6 +11,7 @@ def main():
     database = "chores.db"
     conn = create_connection(database)
     create_tables(conn)
+    cookies = EncryptedCookieManager(prefix="myapp_", password="password")
 
     # Handle login
     if 'admin_id' not in st.session_state:
@@ -19,6 +21,8 @@ def main():
             admin_id = login_admin(conn, username, password)
             if admin_id:
                 st.session_state['admin_id'] = admin_id
+            # Convert admin_id to string before storing in cookies
+                cookies["auth_token"] = str(admin_id)
             else:
                 st.sidebar.error("Invalid username or password")
     

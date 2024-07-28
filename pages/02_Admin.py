@@ -115,12 +115,10 @@ def admin_page():
                 st.write("No level data available.")
 
     if st.button("Logout"):
-        for key in st.session_state.keys():
-            del st.session_state[key]
-        cookies.delete("auth_token")
-        st.success("You have been logged out.")
-        st.experimental_set_query_params(page='home')
-        st.experimental_rerun()
+        cookies["auth_token"] = ""
+        st.session_state['logged_in'] = False
+        st.session_state['admin_id'] = None
+        st.rerun()
 
 if st.session_state.get('logged_in'):
     admin_page()
