@@ -1,8 +1,13 @@
 import streamlit as st
 from db import create_connection, add_task, delete_task, add_user, delete_user, update_user, get_users, get_tasks, get_levels, add_level, update_level_details
 import pandas as pd
+from streamlit_cookies_manager import EncryptedCookieManager
 
 st.set_page_config(page_title="Admin", page_icon="🔑", layout="wide")
+cookies = EncryptedCookieManager(prefix="myapp_", password="password")
+
+if not cookies.ready():
+    st.stop()
 
 def manage_levels(conn, admin_id):
     with st.expander("Manage Levels"):
@@ -40,14 +45,11 @@ def manage_levels(conn, admin_id):
     
 def admin_page():
     st.title("Admin Tools")
-
-    # Connect to the SQLite database
     database = "chores.db"
     conn = create_connection(database)
-    
+
     with st.expander("Manage Tasks"):
         col1, col2 = st.columns(2)
-
         with col1:
             with st.form("Add Task"):
                 new_task_name = st.text_input("New Task Name")
@@ -56,40 +58,34 @@ def admin_page():
                 if st.form_submit_button('Add New Task'):
                     add_task(conn, st.session_state['admin_id'], new_task_name, new_task_xp, new_task_multiplier)
                     st.success("New task added!")
-
         with col2:
             with st.form("Remove Tasks"):
                 tasks = get_tasks(conn, st.session_state['admin_id'])
                 task_to_remove = st.selectbox("Select a task to remove", tasks, format_func=lambda x: x[1], key="remove_task")
                 if st.form_submit_button("Remove Task"):
-                    delete_task(conn, task_to_remove[0])  # Pass the task_id of the selected task
+                    delete_task(conn, task_to_remove[0])
                     st.success(f"Task '{task_to_remove[1]}' removed successfully!")
-                    st.rerun()  # Optionally, rerun to update the task list immediately
+                    st.rerun()
 
     with st.expander("Manage Children"):
         col1, col2 = st.columns(2)
-
         with col1:
             with st.form("Add Child"):
                 child_name = st.text_input("Child's Name")
                 if st.form_submit_button("Add Child"):
                     add_user(conn, st.session_state['admin_id'], child_name)
                     st.success("Child added successfully!")
-
         with col2:
             children = get_users(conn, st.session_state['admin_id'])
             child_to_remove = st.selectbox("Select a child to remove", children, format_func=lambda x: x[1], key="remove_child")
             if st.button("Remove Child"):
-                delete_user(conn, child_to_remove[0])  # Pass the user_id of the selected child
+                delete_user(conn, child_to_remove[0])
                 st.success(f"Child '{child_to_remove[1]}' removed successfully!")
-                st.experimental_rerun()  # Optionally, rerun to update the child list immediately
-                
+                st.experimental_rerun()
+
     manage_levels(conn, st.session_state['admin_id'])
     with st.expander("View All Data"):
-        
-
         col1, col2, col3 = st.columns(3)
-
         with col1:
             st.subheader("All Users and XP Data")
             users = get_users(conn, st.session_state['admin_id'])
@@ -99,7 +95,6 @@ def admin_page():
                 st.dataframe(users_df)
             else:
                 st.write("No users data available.")
-
         with col2:
             st.subheader("All Tasks")
             tasks = get_tasks(conn, st.session_state['admin_id'])
@@ -109,7 +104,6 @@ def admin_page():
                 st.dataframe(tasks_df)
             else:
                 st.write("No tasks data available.")
-
         with col3:
             st.subheader("All Rewards")
             levels = get_levels(conn, st.session_state['admin_id'])
@@ -123,11 +117,10 @@ def admin_page():
     if st.button("Logout"):
         for key in st.session_state.keys():
             del st.session_state[key]
+        cookies.delete("auth_token")
         st.success("You have been logged out.")
-        st.experimental_set_query_params(page='home') 
-    # Redirect to home page or another p
+        st.experimental_set_query_params(page='home')
         st.experimental_rerun()
-
 
 if st.session_state.get('logged_in'):
     admin_page()
